@@ -1,0 +1,314 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+
+<link rel="stylesheet" href="http://code.jquery.com/ui/1.9.2/themes/base/jquery-ui.css">
+
+<link rel="stylesheet" href="Sun.css">
+
+<script src="http://code.jquery.com/jquery-1.8.3.js"></script>
+<script src="http://code.jquery.com/ui/1.9.2/jquery-ui.js"></script>
+
+<style>
+
+</style>
+
+<script>
+    var MAIN_BLOCK_IDV = "div#SunDiv";
+	//var SUN_HEADER_IDV = MAIN_BLOCK_IDV + " > h3";
+    //var SUN_CONTENT_IDV = MAIN_BLOCK_IDV + " > div";
+    
+    var SUN_HEADER_IDV = MAIN_BLOCK_IDV + " > h3.SunHeader";
+    var SUN_CONTENT_IDV = MAIN_BLOCK_IDV + " > div.SunContent";
+    
+    
+    var HEADER_HEIGHT;
+	var NUM_OF_HEADERS;
+   
+	
+	var blkTops = new Array();
+   
+    
+    var stickyHeight = 0;
+	
+	var nextPtr = 0;  //pointer
+	var isProcessing = false;  //handler the scrolling event
+	
+	
+    jQuery(document).ready(function(){
+    	jQuery(MAIN_BLOCK_IDV + " > h3").addClass("SunHeader");
+    	jQuery(MAIN_BLOCK_IDV + " > div").addClass("SunContent");
+    	
+    	jQuery(MAIN_BLOCK_IDV + " > h3").append('<span class="SunSign">   -</span>');
+    	//jQuery(MAIN_BLOCK_IDV + " > h3").addClass("SunExpand");
+    	
+    	jQuery(SUN_HEADER_IDV).each(function(index) {
+			blkTops[index] = jQuery(this).offset().top;
+			//console.log(blkTops[index]);
+		});
+
+    	//initVar(); //init global variables
+    	
+    	HEADER_HEIGHT = calcHeight(jQuery(SUN_HEADER_IDV + ":first"));  //get the height of the header
+		NUM_OF_HEADERS = jQuery(SUN_HEADER_IDV).length;
+		//console.log(HEADER_HEIGHT);
+		//console.log(NUM_OF_HEADERS);
+    	
+    	blkTops[NUM_OF_HEADERS] = calcHeight(jQuery(MAIN_BLOCK_IDV)); //assum the end of the div = the TOP after the last header for its ref
+    	
+		
+        //bind click event
+    	jQuery(SUN_HEADER_IDV).bind('click', function() {
+    		var index = jQuery(SUN_HEADER_IDV).index(this);
+    		sunHeadHandler(index);
+    	});
+        
+        
+        jQuery(window).bind("scroll", function(){
+			scrollingHandler();
+		});
+    })
+    
+
+	function initVar(){
+	
+	}
+    
+    
+	//jQuery(document).ready(function(){
+		
+		//console.log(HEADER_HEIGHT);
+		//console.log(NUM_OF_HEADERS);
+		
+		
+
+		
+		//console.log(HEADER_HEIGHT);
+		
+		//jQuery(window).scroll(function(){
+		//	scrollingHandler();
+		//});
+		
+	//});
+	
+	
+    
+    
+	function scrollingHandler(){
+		var winScrTop = jQuery(window).scrollTop();
+		var nextTop = blkTops[nextPtr];
+		
+		//***
+		//console.log("winScrTop: "+winScrTop);
+		//console.log("nextTop: "+nextTop);
+		
+		if(!isProcessing && winScrTop > nextTop && (nextPtr <= NUM_OF_HEADERS) ){
+			isProcessing = true;
+			//***
+			//###
+			//console.log("winScrTop: "+winScrTop);
+			console.log("nextPtr &: "+nextPtr);
+			//console.log("nextTop: "+nextTop);
+			//console.log();
+			
+			freeze(nextPtr);
+			isProcessing = false;
+		}
+		else if(nextPtr != 0 && winScrTop < blkTops[nextPtr-1]){
+			unfreeze(nextPtr-1);
+		}
+	}
+	
+	
+	function sunHeadHandler(index){
+		var hdr = jQuery(SUN_HEADER_IDV + ":eq(" + index + ")");
+		
+		if (hdr.hasClass("SunCollapse")){
+			sunHeaderExpand(index);
+		}
+		else{
+			sunHeaderCollapse(index);
+		}
+		
+		if (index < nextPtr){
+			for(var i=(nextPtr - 1) ; i>= index ; i--){
+				unfreeze(nextPtr - 1);
+			}
+			
+			jQuery(window).scrollTop(blkTops[index]) - HEADER_HEIGHT;
+		}
+	}
+	
+	function freeze(index){
+		if(index!=0){  //do except the first one
+			sunHeaderCollapse(index-1); //collapse the last header + content
+			genCntShadow(index-1); //gen content shadow for the last one as well
+		}
+		
+		//console.log("nextPtr: " +nextPtr);
+		
+		freezeBlk(index, "header");
+		genHdrShadow(index);
+		//if(nextPtr != NUM_OF_HEADERS){ //**
+			nextPtr++;
+		//}
+	}
+	function unfreeze(index){
+		if(index!=0){
+			removeCntShadow(index-1); 
+			sunHeaderExpand(index-1);
+		}
+		//***
+		//console.log("nextPtr: " +nextPtr);
+		unfreezeBlk(index, "header");
+		removeHdrShadow(index);
+		//if(index > 0){
+			nextPtr--;
+		//}
+	}
+	
+	function sunHeaderExpand(index){
+		jQuery(SUN_HEADER_IDV + ":eq(" + index + ")").removeClass("SunCollapse");
+		
+		jQuery(SUN_HEADER_IDV + ":eq(" + index + ") > span.SunSign").html("   -");
+		
+		jQuery(SUN_CONTENT_IDV + ":eq(" + index + ")").fadeIn('slow');
+	}
+	function sunHeaderCollapse(index){
+		jQuery(SUN_HEADER_IDV + ":eq(" + index + ")").addClass("SunCollapse");
+		
+		jQuery(SUN_HEADER_IDV + ":eq(" + index + ") > span.SunSign").html("   +");
+		
+		//jQuery(SUN_CONTENT_IDV + ":eq(" + index + ")").fadeOut('fast');
+		jQuery(SUN_CONTENT_IDV + ":eq(" + index + ")").hide();
+	}
+	
+	function freezeBlk(index, type){
+		var hdr = jQuery(SUN_HEADER_IDV + ":eq(" + index + ")");
+		//console.log("index: " +index);
+		//console.log("stickyHeight: " +stickyHeight);
+		hdr.css("width", hdr.width() + "px");
+		hdr.css("position", "fixed");
+		hdr.css("top", stickyHeight + "px");
+		hdr.css("z-index", "1");
+		//hdr.css("background-color", "#FFFFFF");
+		
+		stickyHeight += HEADER_HEIGHT;
+	}
+	function unfreezeBlk(index, type){
+		var hdr = jQuery(SUN_HEADER_IDV + ":eq(" + index + ")");
+		
+		hdr.css("width", hdr.width() + "px");
+		hdr.css("position", "static");
+		hdr.css("top", blkTops[index] + "px");
+		hdr.css("z-index", "auto");
+		//hdr.css("background-color", "#FFFFFF");
+		
+		stickyHeight -= HEADER_HEIGHT;
+	}
+	
+	function genHdrShadow(index){
+		var hdr = jQuery(SUN_HEADER_IDV + ":eq(" + index + ")");
+		
+		hdr.after('<h3 class="SunHeaderShadow">...</h3>');
+		hdr.next("h3.SunHeaderShadow").height(HEADER_HEIGHT);
+	}
+	function removeHdrShadow(index){
+		var shadowHdr = jQuery(SUN_HEADER_IDV + ":eq(" + index + ")").next("h3.SunHeaderShadow:first");
+		
+		shadowHdr.remove();
+	}
+	
+	function genCntShadow(index){
+		var hdr = jQuery(SUN_CONTENT_IDV + ":eq(" + index + ")");
+		//console.log("H: " + hdr.height());
+		hdr.after('<div class="SunContentShadow">###</h3>');
+		hdr.next("div.SunContentShadow").height(hdr.height());
+	}
+	function removeCntShadow(index){
+		var shadowCnt = jQuery(SUN_CONTENT_IDV + ":eq(" + index + ")").next("div.SunContentShadow");
+		
+		shadowCnt.remove();
+	}/Library/AXIS2/webapp/axis2-web/ActivateService.jsp
+	
+	function calcHeight(obj){
+		var edge = parseInt(obj.css("border-top-width")) + parseInt(obj.css("border-bottom-width")) 
+					+ parseInt(obj.css("padding-top")) + parseInt(obj.css("padding-bottom"))
+					+ parseInt(obj.css("margin-top")) + parseInt(obj.css("margin-bottom"));
+		
+		return obj.height() + edge;
+		//return edge;
+	}
+	
+</script>
+
+
+<title>SunCollapseScroll Sample</title>
+
+</head>
+<body>
+
+
+<h2>Why jQuery?</h2>
+<p>There are a lots of other JavaScript frameworks out there, but jQuery seems 
+to be the most popular, and also the most extendable.</p>
+<p>Many of the biggest companies on the Web use jQuery, like:</p>
+<ul>
+	<li>Google</li>
+	<li>Microsoft</li>
+	<li>IBM</li>
+	<li>Netflix</li>
+</ul>
+
+
+<div id="SunDiv">
+    <h3>Section 1</h3>
+    <div>
+        <p>Mauris mauris ante, blandit et, ultrices a, suscipit eget, quam. Integer ut neque. Vivamus nisi metus, molestie vel, gravida in, condimentum sit amet, nunc. Nam a nibh. Donec suscipit eros. Nam mi. Proin viverra leo ut odio. Curabitur malesuada. Vestibulum a velit eu ante scelerisque vulputate.</p>
+    </div>
+    <h3>Section 2</h3>
+    <div>
+        <p>Sed non urna. Donec et ante. Phasellus eu ligula. Vestibulum sit amet purus. Vivamus hendrerit, dolor at aliquet laoreet, mauris turpis porttitor velit, faucibus interdum tellus libero ac justo. Vivamus non quam. In suscipit faucibus urna. </p>
+    </div>
+    <h3>Section 3</h3>
+    <div>
+        <p>Nam enim risus, molestie et, porta ac, aliquam ac, risus. Quisque lobortis. Phasellus pellentesque purus in massa. Aenean in pede. Phasellus ac libero ac tellus pellentesque semper. Sed ac felis. Sed commodo, magna quis lacinia ornare, quam ante aliquam nisi, eu iaculis leo purus venenatis dui. </p>
+        <ul>
+            <li>List item one</li>
+            <li>List item two</li>
+            <li>List item three</li>
+        </ul>
+    </div>
+    <h3>Section 4</h3>
+    <div>
+        <p>Cras dictum. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Aenean lacinia mauris vel est. </p><p>Suspendisse eu nisl. Nullam ut libero. Integer dignissim consequat lectus. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. </p>
+    </div>
+</div>
+
+<h2>What is jQuery?</h2>
+<p>jQuery is a lightweight, &quot;write less, do more&quot;, JavaScript library.</p>
+<p>The purpose of jQuery is to make it much easier to use JavaScript on your website.</p>
+<p>jQuery takes a lot of common tasks that requires many lines of JavaScript code to accomplish,
+and wraps it into methods that you can call with a single line of code.</p>
+<p>jQuery also simplifies a lot of the complicated things from JavaScript, like AJAX calls and DOM manipulation.</p>
+<p>The jQuery library contains the following features:</p>
+<ul>
+	<li>HTML/DOM manipulation</li>
+	<li>CSS manipulation</li>
+	<li>HTML event methods</li>
+	<li>Effects and animations</li>
+	<li>AJAX</li>
+	<li>Utilities</li>
+</ul>
+<p><b>Tip:</b> In addition, jQuery has plugins for almost any task out there.</p>
+<hr>
+
+<script>
+
+
+
+</script>
+</body>
+</html>
